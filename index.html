@@ -2,44 +2,90 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8">
-  <title>Strømvik Kalender</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Strømvik Festhus - Booking</title>
+  
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
   <style>
-    body { font-family: sans-serif; background: #f9f9f9; padding:20px;}
-    #calendar {max-width: 900px;margin: 0 auto;background:white;padding:20px;border-radius:10px;}
-    h1{text-align:center;}
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    #calendar-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    #calendar {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .fc-event {
+      background-color: #ff4444;
+      border: none;
+    }
   </style>
 </head>
 <body>
-  <h1>Ledige datoer - Strømvik fest- og forsamlingshus</h1>
-  <div id="calendar"></div>
+  <div id="calendar-container">
+    <div id="calendar"></div>
+  </div>
 
-  <script type="module">
-    import { Calendar } from 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'
+  <!-- JavaScript-biblioteker -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/nb.no.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <script>
+    // Supabase-oppsett
+    const supabaseUrl = 'https://kpsoidftvfithziidjzm.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwc29pZGZ0dmZpdGh6aWlkanptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxNjM5NDUsImV4cCI6MjA1OTczOTk0NX0.inipHFO9-lBhaodeGM8QQTm8NCJ5Z0fuZescjEm6v1w';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-    const supabase = window.supabase.createClient(
-      'https://kpsoidftvfithziidjzm.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwc29pZGZ0dmZpdGh6aWlkanptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxNjM5NDUsImV4cCI6MjA1OTczOTk0NX0.inipHFO9-lBhaodeGM8QQTm8NCJ5Z0fuZescjEm6v1w'
-    );
-
-    document.addEventListener('DOMContentLoaded', async function () {
+    // Initialiser kalenderen når siden lastes
+    document.addEventListener('DOMContentLoaded', async function() {
       const calendarEl = document.getElementById('calendar');
-
-      const calendar = new Calendar(calendarEl, {
+      
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'nb.no', // Norsk språk
         initialView: 'dayGridMonth',
-        locale: 'no',
-        height: 'auto',
-        validRange: {
-          start: new Date().toISOString().slice(0,10),
-          end: new Date(new Date().setFullYear(new Date().getFullYear()+5)).toISOString().slice(0,10)
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth'
         },
         events: async function(fetchInfo, successCallback, failureCallback) {
-          const { data, error } = await supabase.from('reservations').select('*');
-          if (error) return failureCallback(error);
-          successCallback(data.map(dato=>({title:'Opptatt',start:dato.date,color:'#ff0000'})));
-        }
+          try {
+            // Hent reservasjoner fra Supabase for synlig periode
+            const { data, error } = await supabase
+              .from('reservations')
+              .select('date')
+              .gte('date', fetchInfo.startStr)
+              .lte('date', fetchInfo.endStr);
+            
+            if (error) throw error;
+            
+            // Formater for FullCalendar
+            const events = data.map(reservation => ({
+              start: reservation.date,
+              allDay: true,
+              display: 'background',
+              color: '#ff4444',
+              title: 'Opptatt'
+            }));
+            
+            successCallback(events);
+          } catch (error) {
+            console.error('Feil ved henting av datoer:', error);
+            failureCallback(error);
+          }
+        },
+        eventDisplay: 'background',
+        height: 'auto'
       });
 
       calendar.render();
