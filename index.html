@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Strømvik Festhus - Booking</title>
-  
-  <!-- FullCalendar CSS -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
   <style>
     body {
@@ -14,78 +12,47 @@
       margin: 0;
       padding: 20px;
     }
-    #calendar-container {
-      max-width: 1000px;
-      margin: 0 auto;
-    }
     #calendar {
+      max-width: 900px;
+      margin: 0 auto;
       background: white;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
-    .fc-event {
-      background-color: #ff4444;
-      border: none;
-    }
   </style>
 </head>
 <body>
-  <div id="calendar-container">
-    <div id="calendar"></div>
-  </div>
+  <div id="calendar"></div>
 
-  <!-- JavaScript-biblioteker -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/nb.no.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
   <script>
-    // Supabase-oppsett
-    const supabaseUrl = 'https://kpsoidftvfithziidjzm.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwc29pZGZ0dmZpdGh6aWlkanptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxNjM5NDUsImV4cCI6MjA1OTczOTk0NX0.inipHFO9-lBhaodeGM8QQTm8NCJ5Z0fuZescjEm6v1w';
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-    // Initialiser kalenderen når siden lastes
     document.addEventListener('DOMContentLoaded', async function() {
-      const calendarEl = document.getElementById('calendar');
-      
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        locale: 'nb.no', // Norsk språk
+      // Supabase-oppsett
+      const supabaseUrl = 'https://kpsoidftvfithziidjzm.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwc29pZGZ0dmZpdGh6aWlkanptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxNjM5NDUsImV4cCI6MjA1OTczOTk0NX0.inipHFO9-lBhaodeGM8QQTm8NCJ5Z0fuZescjEm6v1w';
+      const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+      // Hent reservasjoner
+      const { data } = await supabase
+        .from('reservations')
+        .select('date');
+
+      // Opprett kalender
+      const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: 'dayGridMonth',
+        events: data.map(item => ({
+          title: 'Opptatt',
+          start: item.date,
+          color: '#ff4444',
+          allDay: true
+        })),
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
           right: 'dayGridMonth'
-        },
-        events: async function(fetchInfo, successCallback, failureCallback) {
-          try {
-            // Hent reservasjoner fra Supabase for synlig periode
-            const { data, error } = await supabase
-              .from('reservations')
-              .select('date')
-              .gte('date', fetchInfo.startStr)
-              .lte('date', fetchInfo.endStr);
-            
-            if (error) throw error;
-            
-            // Formater for FullCalendar
-            const events = data.map(reservation => ({
-              start: reservation.date,
-              allDay: true,
-              display: 'background',
-              color: '#ff4444',
-              title: 'Opptatt'
-            }));
-            
-            successCallback(events);
-          } catch (error) {
-            console.error('Feil ved henting av datoer:', error);
-            failureCallback(error);
-          }
-        },
-        eventDisplay: 'background',
-        height: 'auto'
+        }
       });
 
       calendar.render();
