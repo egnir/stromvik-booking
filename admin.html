@@ -2,11 +2,81 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
-  <meta charset="UTF-8" />
-  <title>Adminpanel</title>
+  <meta charset="UTF-8">
+  <title>Adminpanel – Strømvik Booking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; margin: 2rem; background: #f9f9f9; }
+    .box { background: white; padding: 2rem; border-radius: 8px; max-width: 500px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, button { padding: 0.5rem; font-size: 1rem; width: 100%; margin-bottom: 1rem; }
+    h2 { text-align: center; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 0.5rem 0; display: flex; justify-content: space-between; }
+    .date-item { flex-grow: 1; }
+  </style>
 </head>
 <body>
-  <h1>Adminpanel</h1>
-  <p>Logg inn og administrer reservasjoner her. (Demo-versjon)</p>
+  <div class="box" id="login-box">
+    <h2>Logg inn</h2>
+    <input type="text" id="username" placeholder="Brukernavn">
+    <input type="password" id="password" placeholder="Passord">
+    <button onclick="login()">Logg inn</button>
+  </div>
+
+  <div class="box" id="admin-panel" style="display:none;">
+    <h2>Reservasjoner</h2>
+    <input type="date" id="new-date">
+    <button onclick="addDate()">Legg til dato</button>
+    <ul id="reservations-list"></ul>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/dist/umd/supabase.min.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://kpsoidftvfithziidjzm.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtwc29pZGZ0dmZpdGh6aWlkanptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxNjM5NDUsImV4cCI6MjA1OTczOTk0NX0.inipHFO9-lBhaodeGM8QQTm8NCJ5Z0fuZescjEm6v1w';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const ADMIN_USER = 'admin';
+    const ADMIN_PASS = 'stromvik123';
+
+    async function login() {
+      const u = document.getElementById('username').value;
+      const p = document.getElementById('password').value;
+      if (u === ADMIN_USER && p === ADMIN_PASS) {
+        document.getElementById('login-box').style.display = 'none';
+        document.getElementById('admin-panel').style.display = 'block';
+        loadReservations();
+      } else {
+        alert('Feil brukernavn eller passord');
+      }
+    }
+
+    async function loadReservations() {
+      const { data, error } = await supabase.from('reservations').select('*').order('date');
+      if (error) return alert('Feil ved henting av reservasjoner');
+      const list = document.getElementById('reservations-list');
+      list.innerHTML = '';
+      data.forEach(item => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="date-item">${item.date}</span><button onclick="deleteDate('${item.date}')">Slett</button>`;
+        list.appendChild(li);
+      });
+    }
+
+    async function addDate() {
+      const date = document.getElementById('new-date').value;
+      if (!date) return alert('Velg en dato');
+      const { error } = await supabase.from('reservations').insert([{ date }]);
+      if (error) return alert('Klarte ikke å legge til dato');
+      document.getElementById('new-date').value = '';
+      loadReservations();
+    }
+
+    async function deleteDate(date) {
+      const { error } = await supabase.from('reservations').delete().eq('date', date);
+      if (error) return alert('Klarte ikke å slette dato');
+      loadReservations();
+    }
+  </script>
 </body>
 </html>
